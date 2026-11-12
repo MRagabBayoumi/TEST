@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tender AI Lab | معمل الذكاء الاصطناعي لكراسات الشروط</title>
+  <!-- Google Fonts: Cairo -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Cairo', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Cairo', sans-serif; }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #1e293b; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3 space-x-reverse">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-900/40">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-bold text-white tracking-wide">Tender AI Lab</h1>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-brand-900/60 border border-brand-700/50 text-emerald-400 font-semibold">المرحلة 1</span>
+          </div>
+          <p class="text-xs text-slate-400">معمل معالجة كراسات الشروط والمناقصات - Kayan Catering ERP</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="/docs" target="_blank" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+          وثائق API (Swagger)
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- Upload Card -->
+    <section class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+      <div class="max-w-2xl mx-auto text-center space-y-4">
+        <div class="inline-flex p-3 rounded-2xl bg-brand-950/70 border border-brand-800/40 text-brand-400 mb-1">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+          </svg>
+        </div>
+        <h2 class="text-2xl font-bold text-white">رفع كراسة الشروط والمواصفات (PDF)</h2>
+        <p class="text-sm text-slate-400 leading-relaxed">
+          قم برفع كراسة الشروط لفحصها صفحة بصفحة، واستخراج النصوص الرقمية مع تصحيح اتجاه الحروف العربية المعكوسة تلقائياً وتحديد الصفحات المصورة.
+        </p>
+
+        <!-- Drop Zone -->
+        <div id="dropZone" class="border-2 border-dashed border-slate-700 hover:border-brand-500 rounded-2xl p-8 transition cursor-pointer bg-slate-950/50 group">
+          <input type="file" id="fileInput" accept=".pdf" class="hidden">
+          <div class="flex flex-col items-center justify-center space-y-2">
+            <svg class="w-12 h-12 text-slate-500 group-hover:text-brand-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <p class="text-sm font-semibold text-slate-300">اضغط لاختيار ملف PDF أو اسحبه وأفلته هنا</p>
+            <p class="text-xs text-slate-500">الحد الأقصى للحجم: 250 ميجابايت (يدعم كراسات الشروط الكبيرة 100+ صفحة)</p>
+          </div>
+        </div>
+
+        <!-- Selected File Bar -->
+        <div id="selectedFileInfo" class="hidden items-center justify-between p-3 rounded-xl bg-slate-800/80 border border-slate-700 text-sm">
+          <div class="flex items-center gap-2 overflow-hidden">
+            <svg class="w-5 h-5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span id="selectedFileName" class="truncate font-medium text-slate-200"></span>
+          </div>
+          <button id="uploadBtn" class="bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs px-4 py-2 rounded-lg transition shadow-md shadow-brand-900/30 flex-shrink-0 flex items-center gap-1">
+            <span>بدء المعالجة والاستخراج</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Progress Spinner & Dynamic Bar -->
+        <div id="loadingIndicator" class="hidden py-4 space-y-3">
+          <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden border border-slate-700">
+            <div id="uploadProgressBar" class="bg-gradient-to-r from-emerald-500 to-brand-400 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <div class="flex items-center justify-center gap-2">
+            <div class="inline-block animate-spin rounded-full h-4 w-4 border-2 border-slate-700 border-t-brand-500"></div>
+            <p id="loadingStatusText" class="text-sm text-slate-300 font-medium">جاري رفع الملف إلى السيرفر...</p>
+          </div>
+        </div>
+
+        <!-- Error Alert -->
+        <div id="errorAlert" class="hidden p-4 rounded-xl bg-red-950/70 border border-red-800/50 text-red-200 text-sm text-right">
+        </div>
+      </div>
+    </section>
+
+    <!-- Results Section (Initially Hidden) -->
+    <section id="resultsSection" class="hidden space-y-6">
+
+      <!-- Summary Metrics Bar -->
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5">
+          <p class="text-[11px] text-slate-400 font-medium">إجمالي الصفحات</p>
+          <p id="statTotalPages" class="text-xl font-bold text-white mt-1">0</p>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5">
+          <p class="text-[11px] text-emerald-400 font-medium">صفحات بنصوص رقمية</p>
+          <p id="statDigitalPages" class="text-xl font-bold text-emerald-400 mt-1">0</p>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5">
+          <p class="text-[11px] text-amber-400 font-medium">صفحات ممسوحة ضوئياً</p>
+          <p id="statScannedPages" class="text-xl font-bold text-amber-400 mt-1">0</p>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5">
+          <p class="text-[11px] text-blue-400 font-medium">تم استخراجها بالـ OCR 📷</p>
+          <p id="statOcrPages" class="text-xl font-bold text-blue-400 mt-1">0</p>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5">
+          <p class="text-[11px] text-slate-400 font-medium">حجم الملف</p>
+          <p id="statFileSize" class="text-xl font-bold text-slate-200 mt-1">0 KB</p>
+        </div>
+      </div>
+
+      <!-- Explorer View -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- Left: Page List (4 cols) -->
+        <div class="lg:col-span-4 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+            <h3 class="text-sm font-bold text-white">صفحات الكراسة المستخرجة</h3>
+            <span id="docIdBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400"></span>
+          </div>
+          <div id="pagesList" class="space-y-2 max-h-[550px] overflow-y-auto pr-1">
+            <!-- Dynamic Page Buttons -->
+          </div>
+        </div>
+
+        <!-- Right: Page Details Inspector (8 cols) -->
+        <div class="lg:col-span-8 bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
+          
+          <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div class="flex items-center gap-3">
+              <span id="activePageBadge" class="text-base font-bold text-white">الصفحة 1</span>
+              <span id="activePageTypeBadge" class="text-xs px-2.5 py-0.5 rounded-full font-semibold"></span>
+            </div>
+            <div class="flex items-center gap-4 text-xs text-slate-400">
+              <span>عدد الكلمات: <strong id="activePageWords" class="text-slate-200">0</strong></span>
+              <span>عدد الحروف: <strong id="activePageChars" class="text-slate-200">0</strong></span>
+              <span>الصور المدمجة: <strong id="activePageImages" class="text-slate-200">0</strong></span>
+            </div>
+          </div>
+
+          <!-- Extracted Text Area -->
+          <div class="relative">
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-xs font-semibold text-slate-400">النص المستخرج من الطبقة الرقمية للصفحة:</label>
+              <button id="copyTextBtn" class="text-xs text-brand-400 hover:text-brand-300 font-medium flex items-center gap-1 transition">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+                <span>نسخ النص</span>
+              </button>
+            </div>
+            <div id="pageTextContent" class="w-full min-h-[360px] max-h-[500px] overflow-y-auto bg-slate-950 p-4 rounded-xl border border-slate-800 text-slate-200 text-sm leading-relaxed whitespace-pre-wrap font-sans select-text">
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-900 bg-slate-950 py-4 text-center text-xs text-slate-500">
+    Tender AI Lab • Kayan Catering ERP &copy; 2026
+  </footer>
+
+  <!-- Frontend Logic -->
+  <script>
+    let currentDocument = null;
+    let selectedFile = null;
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const selectedFileInfo = document.getElementById('selectedFileInfo');
+    const selectedFileName = document.getElementById('selectedFileName');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const errorAlert = document.getElementById('errorAlert');
+    const resultsSection = document.getElementById('resultsSection');
+    const pagesList = document.getElementById('pagesList');
+
+    const statTotalPages = document.getElementById('statTotalPages');
+    const statDigitalPages = document.getElementById('statDigitalPages');
+    const statScannedPages = document.getElementById('statScannedPages');
+    const statOcrPages = document.getElementById('statOcrPages');
+    const statFileSize = document.getElementById('statFileSize');
+    const docIdBadge = document.getElementById('docIdBadge');
+
+    const activePageBadge = document.getElementById('activePageBadge');
+    const activePageTypeBadge = document.getElementById('activePageTypeBadge');
+    const activePageWords = document.getElementById('activePageWords');
+    const activePageChars = document.getElementById('activePageChars');
+    const activePageImages = document.getElementById('activePageImages');
+    const pageTextContent = document.getElementById('pageTextContent');
+    const copyTextBtn = document.getElementById('copyTextBtn');
+
+    // Trigger file input
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    // File change
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        handleFileSelection(e.target.files[0]);
+      }
+    });
+
+    // Drag and Drop
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('border-brand-500', 'bg-brand-950/20');
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('border-brand-500', 'bg-brand-950/20');
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-brand-500', 'bg-brand-950/20');
+      if (e.dataTransfer.files.length > 0) {
+        handleFileSelection(e.dataTransfer.files[0]);
+      }
+    });
+
+    function handleFileSelection(file) {
+      if (!file.name.toLowerCase().endsWith('.pdf')) {
+        showError('يرجى اختيار ملف بصيغة PDF فقط.');
+        return;
+      }
+      hideError();
+      selectedFile = file;
+      selectedFileName.textContent = `${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
+      selectedFileInfo.classList.remove('hidden');
+      selectedFileInfo.classList.add('flex');
+    }
+
+    // Upload & Extract Request
+    uploadBtn.addEventListener('click', () => {
+      if (!selectedFile) return;
+
+      hideError();
+      uploadBtn.disabled = true;
+      selectedFileInfo.classList.add('opacity-50');
+      loadingIndicator.classList.remove('hidden');
+      resultsSection.classList.add('hidden');
+
+      const progressBar = document.getElementById('uploadProgressBar');
+      const statusText = document.getElementById('loadingStatusText');
+      if (progressBar) progressBar.style.width = '0%';
+      if (statusText) statusText.textContent = 'جاري رفع الملف إلى السيرفر (0%)...';
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/v1/documents/upload');
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && progressBar && statusText) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          progressBar.style.width = percent + '%';
+          if (percent < 100) {
+            statusText.textContent = `جاري رفع الملف (${percent}%)...`;
+          } else {
+            statusText.textContent = 'اكتمل الرفع! جاري الآن فحص صفحات الكراسة واستخراج النصوص والـ OCR...';
+          }
+        }
+      };
+
+      xhr.onload = () => {
+        uploadBtn.disabled = false;
+        selectedFileInfo.classList.remove('opacity-50');
+        loadingIndicator.classList.add('hidden');
+
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            currentDocument = data;
+            renderResults(data);
+          } catch (e) {
+            showError('حدث خطأ في معالجة استجابة السيرفر.');
+          }
+        } else {
+          try {
+            const err = JSON.parse(xhr.responseText);
+            showError(err.detail || 'حدث خطأ أثناء معالجة المستند.');
+          } catch {
+            showError(`حدث خطأ من السيرفر (كود: ${xhr.status})`);
+          }
+        }
+      };
+
+      xhr.onerror = () => {
+        uploadBtn.disabled = false;
+        selectedFileInfo.classList.remove('opacity-50');
+        loadingIndicator.classList.add('hidden');
+        showError('فشل الاتصال بالسيرفر. يرجى التأكد من تشغيل السيرفر وحجم الملف.');
+      };
+
+      xhr.send(formData);
+    });
+
+    function renderResults(data) {
+      const summary = data.summary;
+      statTotalPages.textContent = summary.total_pages;
+      statDigitalPages.textContent = summary.digital_pages_count;
+      statScannedPages.textContent = summary.scanned_pages_count;
+      statOcrPages.textContent = summary.ocr_pages_count || 0;
+      statFileSize.textContent = (summary.file_size_bytes / 1024).toFixed(1) + ' KB';
+      docIdBadge.textContent = summary.document_id;
+
+      // Render Page Buttons
+      pagesList.innerHTML = '';
+      data.pages.forEach((page, index) => {
+        const btn = document.createElement('button');
+        btn.className = `w-full text-right p-3 rounded-xl border transition flex items-center justify-between text-xs ${
+          index === 0 ? 'bg-brand-950/60 border-brand-700/60 text-white' : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 text-slate-300'
+        }`;
+        btn.dataset.pageIndex = index;
+
+        const isOcr = page.extraction_method === 'ocr';
+        const isScanned = page.is_scanned_candidate;
+
+        let badgeHtml = '';
+        if (isOcr) {
+          const confPercent = page.ocr_confidence ? Math.round(page.ocr_confidence * 100) : 0;
+          badgeHtml = `<span class="text-[11px] px-2 py-0.5 rounded font-medium bg-blue-950 text-blue-300 border border-blue-800/40">OCR ${confPercent}% 📷</span>`;
+        } else if (isScanned) {
+          badgeHtml = `<span class="text-[11px] px-2 py-0.5 rounded font-medium bg-amber-950 text-amber-400 border border-amber-800/40">ممسوحة 📷</span>`;
+        } else {
+          badgeHtml = `<span class="text-[11px] px-2 py-0.5 rounded font-medium bg-emerald-950 text-emerald-400 border border-emerald-800/40">نص رقمي 📄</span>`;
+        }
+
+        btn.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="font-bold">الصفحة ${page.page_number}</span>
+          </div>
+          ${badgeHtml}
+        `;
+
+        btn.addEventListener('click', () => selectPage(index));
+        pagesList.appendChild(btn);
+      });
+
+      // Select first page
+      if (data.pages.length > 0) {
+        selectPage(0);
+      }
+
+      resultsSection.classList.remove('hidden');
+      resultsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function selectPage(index) {
+      if (!currentDocument || !currentDocument.pages[index]) return;
+      const page = currentDocument.pages[index];
+
+      // Update active styling in sidebar
+      Array.from(pagesList.children).forEach((btn, idx) => {
+        if (idx === index) {
+          btn.className = 'w-full text-right p-3 rounded-xl border transition flex items-center justify-between text-xs bg-brand-950/60 border-brand-700/60 text-white shadow-sm';
+        } else {
+          btn.className = 'w-full text-right p-3 rounded-xl border transition flex items-center justify-between text-xs bg-slate-950/60 border-slate-800 hover:border-slate-700 text-slate-300';
+        }
+      });
+
+      // Update Inspector
+      activePageBadge.textContent = `الصفحة ${page.page_number}`;
+      activePageWords.textContent = page.word_count;
+      activePageChars.textContent = page.char_count;
+      activePageImages.textContent = page.image_count;
+
+      if (page.extraction_method === 'ocr') {
+        const confPercent = page.ocr_confidence ? Math.round(page.ocr_confidence * 100) : 0;
+        activePageTypeBadge.textContent = `مستخرج بالتعرف الضوئي (OCR) • دقة القراءة: ${confPercent}%`;
+        activePageTypeBadge.className = 'text-xs px-2.5 py-0.5 rounded-full font-semibold bg-blue-950 border border-blue-800/50 text-blue-300';
+      } else if (page.is_scanned_candidate) {
+        activePageTypeBadge.textContent = 'صفحة مصورة';
+        activePageTypeBadge.className = 'text-xs px-2.5 py-0.5 rounded-full font-semibold bg-amber-950 border border-amber-800/50 text-amber-300';
+      } else {
+        activePageTypeBadge.textContent = 'نص رقمي مباشر';
+        activePageTypeBadge.className = 'text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-950 border border-emerald-800/50 text-emerald-300';
+      }
+
+      if (page.text && page.text.trim()) {
+        pageTextContent.textContent = page.text;
+      } else {
+        pageTextContent.innerHTML = `<span class="text-slate-500 italic">لا توجد نصوص مستخرجة في هذه الصفحة.</span>`;
+      }
+    }
+
+    // Copy to clipboard
+    copyTextBtn.addEventListener('click', () => {
+      const text = pageTextContent.textContent;
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(() => {
+        const origText = copyTextBtn.innerHTML;
+        copyTextBtn.innerHTML = `<span class="text-emerald-400 font-bold">تم النسخ! ✓</span>`;
+        setTimeout(() => copyTextBtn.innerHTML = origText, 2000);
+      });
+    });
+
+    function showError(msg) {
+      errorAlert.textContent = msg;
+      errorAlert.classList.remove('hidden');
+    }
+
+    function hideError() {
+      errorAlert.classList.add('hidden');
+      errorAlert.textContent = '';
+    }
+  </script>
+</body>
+</html>
