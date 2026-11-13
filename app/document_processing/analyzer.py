@@ -1,5 +1,6 @@
 from pathlib import Path
 import pymupdf  # Modern PyMuPDF
+from app.document_processing.cleaner import is_corrupted_or_scanned_page
 
 
 
@@ -35,9 +36,8 @@ class PDFAnalyzer:
             image_list = page.get_images(full=True)
             image_count = len(image_list)
 
-            # Heuristic for scanned pages:
-            # If the page has very few characters (< 40) and has images, or has 0 characters
-            is_scanned = (char_count < 40 and image_count > 0) or (char_count == 0)
+            # Detect if page is scanned, image-only, or has corrupted font encoding (Mojibake)
+            is_scanned = is_corrupted_or_scanned_page(raw_text, image_count)
 
             if is_scanned:
                 scanned_pages_count += 1

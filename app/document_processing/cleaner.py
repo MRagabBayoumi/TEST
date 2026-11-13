@@ -56,6 +56,33 @@ def fix_reversed_arabic_line(line: str) -> str:
     return line
 
 
+def is_corrupted_or_scanned_page(text: str, image_count: int = 0) -> bool:
+    """
+    Detects if a page has no text, is image-only, or has a corrupted digital layer
+    (Mojibake / non-standard font encoding where Arabic text was extracted as scrambled ASCII symbols).
+    """
+    cleaned = text.strip()
+    if len(cleaned) < 40:
+        return True
+
+    # Count real Arabic characters
+    arabic_chars = len(re.findall(r"[\u0600-\u06FF]", cleaned))
+
+    # If the page contains real Arabic characters, it's a valid digital layer
+    if arabic_chars >= 25:
+        return False
+
+    # Check for symbol noise typical of broken font CMaps:
+    weird_symbols = len(re.findall(r"[{}[\]|\\^~*#€@$%&;`<>]", cleaned))
+    symbol_ratio = weird_symbols / len(cleaned)
+
+    # If symbols are high or there are zero Arabic characters in an Arabic document, it must be OCR'd
+    if symbol_ratio > 0.03 or arabic_chars == 0:
+        return True
+
+    return False
+
+
 def clean_arabic_text(text: str) -> str:
     """
     Cleans and normalizes extracted Arabic and multilingual text:

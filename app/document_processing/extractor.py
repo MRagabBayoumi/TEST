@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Optional
 import pymupdf
 from app.core.config import settings
-from app.document_processing.cleaner import clean_arabic_text
+from app.document_processing.cleaner import clean_arabic_text, is_corrupted_or_scanned_page
 from app.ocr.base import BaseOCREngine
 from app.ocr.tesseract_engine import TesseractOCREngine
 from app.schemas.document import DocumentExtractionResult, DocumentSummary, PageContent
@@ -57,8 +57,8 @@ class PDFTextExtractor:
             image_list = page.get_images(full=True)
             image_count = len(image_list)
 
-            # Detect whether this page lacks text and needs OCR
-            is_scanned = (char_count < 40 and image_count > 0) or (char_count == 0)
+            # Detect whether this page lacks text, is image-only, or has corrupted font encoding (Mojibake)
+            is_scanned = is_corrupted_or_scanned_page(raw_text, image_count)
 
             extraction_method = "digital"
             ocr_confidence = None
