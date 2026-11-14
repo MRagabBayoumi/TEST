@@ -4,6 +4,7 @@ from typing import Optional
 import pymupdf
 from app.core.config import settings
 from app.document_processing.cleaner import clean_arabic_text, is_corrupted_or_scanned_page
+from app.document_processing.table_extractor import TableExtractor
 from app.ocr.base import BaseOCREngine
 from app.ocr.tesseract_engine import TesseractOCREngine
 from app.schemas.document import DocumentExtractionResult, DocumentSummary, PageContent
@@ -41,6 +42,7 @@ class PDFTextExtractor:
         digital_pages_count = 0
         scanned_pages_count = 0
         ocr_pages_count = 0
+        total_tables_count = 0
 
         for page_index in range(total_pages):
             page = doc.load_page(page_index)
@@ -79,8 +81,23 @@ class PDFTextExtractor:
                         extraction_method = "ocr"
                         ocr_confidence = confidence
                         ocr_pages_count += 1
+                    else:
+                        # Scanned image with no readable text detected
+                        cleaned_text = ""
+                        char_count = 0
+                        word_count = 0
+                        extraction_method = "ocr_empty"
+                else:
+                    cleaned_text = ""
+                    char_count = 0
+                    word_count = 0
+                    extraction_method = "pending_ocr"
             else:
                 digital_pages_count += 1
+
+            # Extract structured tables on this page (Stage 3)
+            page_tables = TableExtractor.extract_tables_from_page(page, page_number)
+            total_tables_count += len(page_tables)
 
             rect = page.rect
             pages.append(
@@ -96,6 +113,7 @@ class PDFTextExtractor:
                     width=float(rect.width),
                     height=float(rect.height),
                     text=cleaned_text,
+                    tables=page_tables,
                 )
             )
 
@@ -110,6 +128,7 @@ class PDFTextExtractor:
             digital_pages_count=digital_pages_count,
             scanned_pages_count=scanned_pages_count,
             ocr_pages_count=ocr_pages_count,
+            total_tables_count=total_tables_count,
         )
 
         json_path_str = None

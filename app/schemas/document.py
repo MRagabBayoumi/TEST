@@ -3,6 +3,29 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
+class ExtractedTable(BaseModel):
+    """Represents a structured table extracted from a document page."""
+
+    table_id: str = Field(..., description="Unique table identifier (e.g. tbl_p1_1)")
+    page_number: int = Field(..., description="1-indexed page number containing the table")
+    row_count: int = Field(..., description="Total number of rows in the table (including header)")
+    col_count: int = Field(..., description="Total number of columns in the table")
+    headers: list[str] = Field(default_factory=list, description="Extracted column header labels")
+    rows: list[list[str]] = Field(
+        default_factory=list, description="Extracted table row cells (excluding header row)"
+    )
+    bbox: Optional[list[float]] = Field(
+        default=None, description="Bounding box [x0, y0, x1, y1] on the page in points"
+    )
+    markdown: str = Field(
+        default="", description="Clean Markdown representation of the table for RAG and display"
+    )
+    data_rows: list[dict[str, str]] = Field(
+        default_factory=list,
+        description="Structured key-value rows mapping header names to cell values for ERP ingestion",
+    )
+
+
 class PageContent(BaseModel):
     """Represents the extracted text and metadata of a single PDF page."""
 
@@ -26,6 +49,9 @@ class PageContent(BaseModel):
     width: float = Field(..., description="Page width in points")
     height: float = Field(..., description="Page height in points")
     text: str = Field(..., description="Extracted and cleaned text from the page")
+    tables: list[ExtractedTable] = Field(
+        default_factory=list, description="Structured tables extracted from this page"
+    )
 
 
 class DocumentSummary(BaseModel):
@@ -43,6 +69,9 @@ class DocumentSummary(BaseModel):
     )
     ocr_pages_count: int = Field(
         default=0, description="Number of pages processed and recovered via OCR"
+    )
+    total_tables_count: int = Field(
+        default=0, description="Total number of structured tables extracted from the document"
     )
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

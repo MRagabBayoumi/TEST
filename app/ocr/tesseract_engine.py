@@ -40,73 +40,62 @@ class TesseractOCREngine(BaseOCREngine):
 
     def preprocess_image(self, image: Image.Image) -> Image.Image:
         """
-        Enhances image readability for OCR:
-        1. Convert to grayscale.
-        2. Enhance contrast.
-        3. Sharpen edges.
+        Enhances image readability for OCR with mild contrast optimization
+        without destroying faint Arabic typography.
         """
         # Convert to grayscale
         gray = image.convert("L")
 
-        # Increase contrast to make faint Arabic text and stamps clear
+        # Mild contrast adjustment suitable for scanned documents
         enhancer = ImageEnhance.Contrast(gray)
-        contrast = enhancer.enhance(1.8)
-
-        # Slight sharpening
-        sharpened = contrast.filter(ImageFilter.SHARPEN)
-        return sharpened
+        adjusted = enhancer.enhance(1.2)
+        return adjusted
 
     def extract_from_image(self, image: Image.Image) -> Tuple[str, float]:
         """
         Runs OCR on a PIL Image and returns extracted text and mean confidence score (0.0 to 1.0).
+        Uses a robust multi-pass strategy (raw image -> preprocessed image) with fallback to image_to_string.
         """
         if not self.is_available():
             return "", 0.0
 
-        try:
-            processed_img = self.preprocess_image(image)
+        candidates = [image, self.preprocess_image(image)]
 
-            # PSM 1: Automatic page segmentation with OSD
-            # PSM 3: Fully automatic page segmentation (default)
-            # PSM 6: Assume a single uniform block of text
-            custom_config = "--psm 3"
-
-            # Use image_to_data to obtain token-level confidence scores
-            data = pytesseract.image_to_data(
-                processed_img,
-                lang=self.languages,
-                config=custom_config,
-                output_type=pytesseract.Output.DICT,
-            )
-
-            text_tokens = []
-            confidences = []
-
-            for i in range(len(data["text"])):
-                word = data["text"][i].strip()
-                conf = float(data["conf"][i])
-
-                # Tesseract marks confidence as -1 for empty/delimiter boxes
-                if word and conf >= 0:
-                    text_tokens.append(word)
-                    confidences.append(conf)
-
-            full_text = " ".join(text_tokens)
-            mean_conf = (
-                (sum(confidences) / len(confidences) / 100.0) if confidences else 0.0
-            )
-
-            return full_text, round(mean_conf, 4)
-
-        except Exception as e:
-            # Fallback on raw image_to_string if detailed data extraction fails
+        for img in candidates:
             try:
-                raw_text = pytesseract.image_to_string(
-                    image, lang=self.languages, config="--psm 3"
-                )
-                return raw_text.strip(), 0.5
+                # First attempt: image_to_string with PSM 3 (most reliable for Arabic text layout)
+                text = pytesseract.image_to_string(
+                    img,
+                    lang=self.languages,
+                    config="--psm 3",
+                ).strip()
+
+                if text:
+                    # Calculate approximate confidence via image_to_data
+                    try:
+                        data = pytesseract.image_to_data(
+                            img,
+                            lang=self.languages,
+                            config="--psm 3",
+                            output_type=pytesseract.Output.DICT,
+                        )
+                        confs = [
+                            float(c)
+                            for w, c in zip(data["text"], data["conf"])
+                            if w.strip() and float(c) >= 0
+                        ]
+                        mean_conf = (
+                            (sum(confs) / len(confs) / 100.0) if confs else 0.75
+                        )
+                    except Exception:
+                        mean_conf = 0.75
+
+                    return text, round(mean_conf, 4)
+
             except Exception:
-                return "", 0.0
+                continue
+
+        return "", 0.0
 
     def extract_from_page(self, page: pymupdf.Page, dpi: int = 200) -> Tuple[str, float]:
         """

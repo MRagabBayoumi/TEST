@@ -55,7 +55,7 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-lg font-bold text-white tracking-wide">Tender AI Lab</h1>
-            <span class="text-xs px-2 py-0.5 rounded-full bg-brand-900/60 border border-brand-700/50 text-emerald-400 font-semibold">المرحلة 1</span>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-purple-950/80 border border-purple-700/60 text-purple-300 font-semibold">المرحلة 3: استخراج الجداول</span>
           </div>
           <p class="text-xs text-slate-400">معمل معالجة كراسات الشروط والمناقصات - Kayan Catering ERP</p>
         </div>
@@ -133,7 +133,7 @@
     <section id="resultsSection" class="hidden space-y-6">
 
       <!-- Summary Metrics Bar -->
-      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5">
           <p class="text-[11px] text-slate-400 font-medium">إجمالي الصفحات</p>
           <p id="statTotalPages" class="text-xl font-bold text-white mt-1">0</p>
@@ -149,6 +149,10 @@
         <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5">
           <p class="text-[11px] text-blue-400 font-medium">تم استخراجها بالـ OCR 📷</p>
           <p id="statOcrPages" class="text-xl font-bold text-blue-400 mt-1">0</p>
+        </div>
+        <div class="bg-slate-900/80 border border-purple-500/30 rounded-xl p-3.5">
+          <p class="text-[11px] text-purple-400 font-medium">جداول مستخرجة 📊</p>
+          <p id="statTablesCount" class="text-xl font-bold text-purple-300 mt-1">0</p>
         </div>
         <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5">
           <p class="text-[11px] text-slate-400 font-medium">حجم الملف</p>
@@ -196,7 +200,20 @@
                 <span>نسخ النص</span>
               </button>
             </div>
-            <div id="pageTextContent" class="w-full min-h-[360px] max-h-[500px] overflow-y-auto bg-slate-950 p-4 rounded-xl border border-slate-800 text-slate-200 text-sm leading-relaxed whitespace-pre-wrap font-sans select-text">
+            <div id="pageTextContent" class="w-full min-h-[300px] max-h-[420px] overflow-y-auto bg-slate-950 p-4 rounded-xl border border-slate-800 text-slate-200 text-sm leading-relaxed whitespace-pre-wrap font-sans select-text">
+            </div>
+          </div>
+
+          <!-- Extracted Tables Section (Stage 3) -->
+          <div id="pageTablesSection" class="hidden space-y-3 pt-3 border-t border-slate-800">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-bold text-purple-300">جداول الصفحة المستخرجة</span>
+                <span id="pageTablesCountBadge" class="text-xs px-2 py-0.5 rounded-full bg-purple-950 border border-purple-800/50 text-purple-300 font-semibold">0</span>
+              </div>
+            </div>
+            <div id="pageTablesContainer" class="space-y-4">
+              <!-- Rendered Table Cards -->
             </div>
           </div>
 
@@ -232,6 +249,7 @@
     const statDigitalPages = document.getElementById('statDigitalPages');
     const statScannedPages = document.getElementById('statScannedPages');
     const statOcrPages = document.getElementById('statOcrPages');
+    const statTablesCount = document.getElementById('statTablesCount');
     const statFileSize = document.getElementById('statFileSize');
     const docIdBadge = document.getElementById('docIdBadge');
 
@@ -353,6 +371,7 @@
       statDigitalPages.textContent = summary.digital_pages_count;
       statScannedPages.textContent = summary.scanned_pages_count;
       statOcrPages.textContent = summary.ocr_pages_count || 0;
+      if (statTablesCount) statTablesCount.textContent = summary.total_tables_count || 0;
       statFileSize.textContent = (summary.file_size_bytes / 1024).toFixed(1) + ' KB';
       docIdBadge.textContent = summary.document_id;
 
@@ -367,6 +386,7 @@
 
         const isOcr = page.extraction_method === 'ocr';
         const isScanned = page.is_scanned_candidate;
+        const tablesCount = (page.tables && page.tables.length) ? page.tables.length : 0;
 
         let badgeHtml = '';
         if (isOcr) {
@@ -378,9 +398,12 @@
           badgeHtml = `<span class="text-[11px] px-2 py-0.5 rounded font-medium bg-emerald-950 text-emerald-400 border border-emerald-800/40">نص رقمي 📄</span>`;
         }
 
+        let tableTag = tablesCount > 0 ? `<span class="text-[10px] px-1.5 py-0.5 rounded font-medium bg-purple-950 text-purple-300 border border-purple-800/40">📊 ${tablesCount} جدول</span>` : '';
+
         btn.innerHTML = `
           <div class="flex items-center gap-2">
             <span class="font-bold">الصفحة ${page.page_number}</span>
+            ${tableTag}
           </div>
           ${badgeHtml}
         `;
@@ -433,6 +456,62 @@
         pageTextContent.textContent = page.text;
       } else {
         pageTextContent.innerHTML = `<span class="text-slate-500 italic">لا توجد نصوص مستخرجة في هذه الصفحة.</span>`;
+      }
+
+      // Render Page Tables (Stage 3)
+      const tablesSection = document.getElementById('pageTablesSection');
+      const tablesCountBadge = document.getElementById('pageTablesCountBadge');
+      const tablesContainer = document.getElementById('pageTablesContainer');
+
+      if (page.tables && page.tables.length > 0) {
+        tablesSection.classList.remove('hidden');
+        tablesCountBadge.textContent = page.tables.length;
+        tablesContainer.innerHTML = '';
+
+        page.tables.forEach((tbl, tIdx) => {
+          const card = document.createElement('div');
+          card.className = 'bg-slate-950 rounded-xl border border-slate-800 p-4 space-y-3';
+
+          const headerCells = tbl.headers.map(h => `<th class="p-2.5 text-right font-bold text-slate-200 border-b border-slate-800 bg-slate-900/90 text-xs">${h}</th>`).join('');
+          const rowCells = tbl.rows.map((row, rIdx) => {
+            const cells = row.map(c => `<td class="p-2.5 text-right text-slate-300 border-b border-slate-800/60 text-xs">${c || '-'}</td>`).join('');
+            const bg = rIdx % 2 === 0 ? 'bg-slate-950' : 'bg-slate-900/40';
+            return `<tr class="${bg}">${cells}</tr>`;
+          }).join('');
+
+          card.innerHTML = `
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800/80">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-purple-300">جدول ${tIdx + 1}: ${tbl.table_id}</span>
+                <span class="text-[10px] text-slate-500">(${tbl.row_count} صف × ${tbl.col_count} عمود)</span>
+              </div>
+              <button type="button" class="copy-md-btn text-[11px] px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-purple-300 font-medium transition" data-markdown="${encodeURIComponent(tbl.markdown)}">
+                📋 نسخ Markdown
+              </button>
+            </div>
+            <div class="overflow-x-auto rounded-lg border border-slate-800">
+              <table class="w-full text-right border-collapse">
+                <thead><tr>${headerCells}</tr></thead>
+                <tbody>${rowCells}</tbody>
+              </table>
+            </div>
+          `;
+
+          const copyBtn = card.querySelector('.copy-md-btn');
+          copyBtn.addEventListener('click', () => {
+            const md = decodeURIComponent(copyBtn.dataset.markdown);
+            navigator.clipboard.writeText(md).then(() => {
+              const orig = copyBtn.textContent;
+              copyBtn.textContent = 'تم النسخ! ✓';
+              setTimeout(() => copyBtn.textContent = orig, 2000);
+            });
+          });
+
+          tablesContainer.appendChild(card);
+        });
+      } else {
+        tablesSection.classList.add('hidden');
+        tablesContainer.innerHTML = '';
       }
     }
 
