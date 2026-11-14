@@ -5,7 +5,9 @@ from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from app.core.config import settings
 from app.core.security import sanitize_filename, validate_pdf_content
 from app.document_processing.extractor import PDFTextExtractor
+from app.document_processing.semantic_chunker import ArabicSemanticChunker
 from app.schemas.document import DocumentExtractionResult, PageContent
+from app.vector_store.qdrant_service import get_vector_store
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -84,6 +86,19 @@ async def upload_pdf(file: UploadFile = File(...)):
             original_filename=safe_filename,
         )
         result = extractor.extract_all(save_json=True)
+
+        # Auto-index into Qdrant vector database (Stage 4)
+        try:
+            chunker = ArabicSemanticChunker(target_chunk_size=500, chunk_overlap=80)
+            chunks = chunker.chunk_document(
+                result.pages, document_id=document_id, filename=safe_filename
+            )
+            vector_store = get_vector_store()
+            vector_store.delete_document(document_id)
+            vector_store.index_chunks(chunks)
+        except Exception:
+            pass
+
         return result
     except Exception as e:
         # If extraction crashes, ensure we raise informative error

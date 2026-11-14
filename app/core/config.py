@@ -21,6 +21,7 @@ class Settings:
     PROCESSED_DIR: Path = BASE_DIR / os.getenv("PROCESSED_DIR", "storage/processed")
     LOGS_DIR: Path = BASE_DIR / os.getenv("LOGS_DIR", "storage/logs")
     TESSDATA_DIR: Path = BASE_DIR / os.getenv("TESSDATA_DIR", "storage/tessdata")
+    QDRANT_DIR: Path = BASE_DIR / os.getenv("QDRANT_DIR", "storage/qdrant_db")
 
     # Security limits
     MAX_UPLOAD_SIZE_MB: int = int(os.getenv("MAX_UPLOAD_SIZE_MB", 250))
@@ -39,6 +40,7 @@ class Settings:
         self.PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
         self.LOGS_DIR.mkdir(parents=True, exist_ok=True)
         self.TESSDATA_DIR.mkdir(parents=True, exist_ok=True)
+        self.QDRANT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 settings = Settings()

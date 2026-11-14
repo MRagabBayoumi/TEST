@@ -55,7 +55,7 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-lg font-bold text-white tracking-wide">Tender AI Lab</h1>
-            <span class="text-xs px-2.5 py-0.5 rounded-full bg-purple-950/80 border border-purple-700/60 text-purple-300 font-semibold">المرحلة 3: استخراج الجداول</span>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 font-semibold">المرحلة 4: التقطيع والمتجهات (Qdrant)</span>
           </div>
           <p class="text-xs text-slate-400">معمل معالجة كراسات الشروط والمناقصات - Kayan Catering ERP</p>
         </div>
@@ -157,6 +157,60 @@
         <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5">
           <p class="text-[11px] text-slate-400 font-medium">حجم الملف</p>
           <p id="statFileSize" class="text-xl font-bold text-slate-200 mt-1">0 KB</p>
+        </div>
+      </div>
+
+      <!-- Semantic Vector Search Card (Stage 4) -->
+      <div class="bg-slate-900/90 border border-brand-500/30 rounded-2xl p-5 space-y-4 shadow-lg shadow-brand-950/20">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-brand-500/20 border border-brand-500/40 flex items-center justify-center text-brand-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white">البحث الدلالي بالمتجهات في كراسة الشروط (Qdrant Vector Search)</h3>
+              <p class="text-xs text-slate-400">ابحث باللغة الطبيعية عن أي بند أو مواصفة أو جدول مستخرج بالذكاء الدلالي</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 text-xs">
+            <span class="text-slate-400">تصفية:</span>
+            <button type="button" id="filterAllBtn" class="search-filter-btn px-2.5 py-1 rounded-lg bg-brand-600 text-white font-medium text-xs transition" data-filter="">الكل</button>
+            <button type="button" id="filterTextBtn" class="search-filter-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition" data-filter="text">نصوص فقط 📄</button>
+            <button type="button" id="filterTableBtn" class="search-filter-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition" data-filter="table">جداول فقط 📊</button>
+          </div>
+        </div>
+
+        <form id="semanticSearchForm" class="flex gap-2">
+          <input
+            type="text"
+            id="semanticSearchInput"
+            placeholder="مثال: ما هي كمية الجبن المقررة في الفطار؟ أو غرامات التأخير؟ أو شروط توريد اللحوم؟"
+            class="flex-1 bg-slate-950 border border-slate-700 focus:border-brand-500 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition"
+            required
+          />
+          <button
+            type="submit"
+            id="semanticSearchBtn"
+            class="bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition shadow-md flex items-center gap-1.5 flex-shrink-0"
+          >
+            <span>بحث دلالي</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </button>
+        </form>
+
+        <!-- Search Results Dropdown/Box -->
+        <div id="searchResultsContainer" class="hidden space-y-3 pt-3 border-t border-slate-800">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span id="searchResultsCount">نتائج البحث: 0</span>
+            <button type="button" id="clearSearchBtn" class="text-xs text-slate-500 hover:text-slate-300">إخفاء النتائج ✕</button>
+          </div>
+          <div id="searchResultsList" class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+            <!-- Dynamic Result Cards -->
+          </div>
         </div>
       </div>
 
@@ -525,6 +579,118 @@
         setTimeout(() => copyTextBtn.innerHTML = origText, 2000);
       });
     });
+
+    // Semantic Search Logic (Stage 4)
+    let activeSearchFilter = '';
+    const searchFilterBtns = document.querySelectorAll('.search-filter-btn');
+    searchFilterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        searchFilterBtns.forEach(b => {
+          b.className = 'search-filter-btn px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition';
+        });
+        btn.className = 'search-filter-btn px-2.5 py-1 rounded-lg bg-brand-600 text-white font-medium text-xs transition';
+        activeSearchFilter = btn.dataset.filter;
+      });
+    });
+
+    const semanticSearchForm = document.getElementById('semanticSearchForm');
+    const semanticSearchInput = document.getElementById('semanticSearchInput');
+    const semanticSearchBtn = document.getElementById('semanticSearchBtn');
+    const searchResultsContainer = document.getElementById('searchResultsContainer');
+    const searchResultsList = document.getElementById('searchResultsList');
+    const searchResultsCount = document.getElementById('searchResultsCount');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+
+    if (clearSearchBtn) {
+      clearSearchBtn.addEventListener('click', () => {
+        searchResultsContainer.classList.add('hidden');
+        searchResultsList.innerHTML = '';
+      });
+    }
+
+    if (semanticSearchForm) {
+      semanticSearchForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const query = semanticSearchInput.value.trim();
+        if (!query || !currentDocument) {
+          if (!currentDocument) showError('يرجى رفع كراسة شروط أولاً للبحث داخلها.');
+          return;
+        }
+
+        semanticSearchBtn.disabled = true;
+        const origBtnHtml = semanticSearchBtn.innerHTML;
+        semanticSearchBtn.innerHTML = `<span>جاري البحث...</span>`;
+
+        try {
+          const payload = {
+            query: query,
+            document_id: currentDocument.summary.document_id,
+            top_k: 5,
+            chunk_type: activeSearchFilter || null
+          };
+
+          const res = await fetch('/api/v1/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (!res.ok) throw new Error('فشل البحث الدلالي');
+          const data = await res.json();
+
+          searchResultsList.innerHTML = '';
+          searchResultsCount.textContent = `نتائج البحث عن "${query}": (${data.total_found} نتيجة)`;
+
+          if (data.results.length === 0) {
+            searchResultsList.innerHTML = `<div class="p-3 text-center text-xs text-slate-500">لم يتم العثور على نتائج متطابقة في هذا المستند.</div>`;
+          } else {
+            data.results.forEach((item, rIdx) => {
+              const resultCard = document.createElement('div');
+              resultCard.className = 'p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2 hover:border-slate-700 transition';
+
+              const scorePercent = Math.round(item.score * 100);
+              const isTable = item.chunk_type === 'table';
+              const typeBadge = isTable
+                ? `<span class="text-[10px] px-2 py-0.5 rounded font-medium bg-purple-950 text-purple-300 border border-purple-800/40">📊 جدول</span>`
+                : `<span class="text-[10px] px-2 py-0.5 rounded font-medium bg-emerald-950 text-emerald-400 border border-emerald-800/40">📄 نص</span>`;
+
+              resultCard.innerHTML = `
+                <div class="flex items-center justify-between text-xs">
+                  <div class="flex items-center gap-2">
+                    <span class="font-bold text-white">#${rIdx + 1}</span>
+                    <span class="px-2 py-0.5 rounded font-semibold text-[11px] bg-brand-950 text-emerald-400 border border-brand-800/40">🎯 تطابق دلالي: ${scorePercent}%</span>
+                    ${typeBadge}
+                  </div>
+                  <button type="button" class="jump-page-btn text-xs text-brand-400 hover:text-brand-300 font-semibold flex items-center gap-1" data-page="${item.page_number}">
+                    <span>الانتقال للصفحة ${item.page_number}</span>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                  </button>
+                </div>
+                <div class="text-xs text-slate-300 leading-relaxed max-h-[140px] overflow-y-auto whitespace-pre-wrap bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/60 font-mono">
+                  ${item.content}
+                </div>
+              `;
+
+              const jumpBtn = resultCard.querySelector('.jump-page-btn');
+              jumpBtn.addEventListener('click', () => {
+                const pNum = parseInt(jumpBtn.dataset.page, 10);
+                selectPage(pNum - 1);
+              });
+
+              searchResultsList.appendChild(resultCard);
+            });
+          }
+
+          searchResultsContainer.classList.remove('hidden');
+
+        } catch (err) {
+          showError(err.message || 'فشل تنفيذ البحث الدلالي');
+        } finally {
+          semanticSearchBtn.disabled = false;
+          semanticSearchBtn.innerHTML = origBtnHtml;
+        }
+      });
+    }
 
     function showError(msg) {
       errorAlert.textContent = msg;
