@@ -24,6 +24,8 @@ storage/logs/*
 !storage/logs/.gitkeep
 storage/tessdata/*
 !storage/tessdata/.gitkeep
+storage/qdrant_db/*
+!storage/qdrant_db/.gitkeep
 
 # OS files
 .DS_Store
