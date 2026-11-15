@@ -1,6 +1,8 @@
+import hashlib
 import json
 import uuid
 from pathlib import Path
+import anyio
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from app.core.config import settings
 from app.core.security import sanitize_filename, validate_pdf_content
@@ -21,8 +23,8 @@ router = APIRouter(prefix="/documents", tags=["Documents"])
 async def upload_pdf(file: UploadFile = File(...)):
     """
     Receives a PDF document via streaming, validates security constraints (size, header, extension),
-    saves the file safely in 1MB chunks to prevent memory spikes, extracts text page-by-page preserving
-    page numbers, and stores structured JSON.
+    computes content hash for instant deduplication/caching, saves safely in 1MB chunks,
+    extracts text concurrently in a worker thread (non-blocking), and indexes in Qdrant.
     """
     filename = file.filename or "tender.pdf"
     if not filename.lower().endswith(".pdf"):
@@ -40,11 +42,13 @@ async def upload_pdf(file: UploadFile = File(...)):
     max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
     total_bytes = 0
     first_chunk = True
+    sha256_hasher = hashlib.sha256()
 
     try:
         with open(target_path, "wb") as out_file:
             while chunk := await file.read(1024 * 1024):  # 1MB buffer chunks
                 total_bytes += len(chunk)
+                sha256_hasher.update(chunk)
                 if total_bytes > max_bytes:
                     out_file.close()
                     target_path.unlink(missing_ok=True)
@@ -78,14 +82,49 @@ async def upload_pdf(file: UploadFile = File(...)):
             detail=f"حدث خطأ أثناء حفظ الملف: {str(e)}",
         )
 
-    # Run extraction pipeline
+    file_digest = sha256_hasher.hexdigest()
+    hash_index_path = settings.PROCESSED_DIR / "hash_index.json"
+
+    # Fast Cache Check: If identical file was already processed, return immediately
+    if hash_index_path.exists():
+        try:
+            with open(hash_index_path, "r", encoding="utf-8") as f:
+                hash_cache = json.load(f)
+            if file_digest in hash_cache:
+                cached_id = hash_cache[file_digest]
+                cached_json = settings.PROCESSED_DIR / f"{cached_id}.json"
+                if cached_json.exists():
+                    target_path.unlink(missing_ok=True)  # Clean redundant upload file
+                    with open(cached_json, "r", encoding="utf-8") as f:
+                        cached_data = json.load(f)
+                    return DocumentExtractionResult(
+                        summary=cached_data["summary"],
+                        pages=cached_data["pages"],
+                        processed_json_path=str(cached_json),
+                    )
+        except Exception:
+            pass
+
+    # Run extraction pipeline asynchronously in threadpool to keep event loop responsive
     try:
         extractor = PDFTextExtractor(
             pdf_path=target_path,
             document_id=document_id,
             original_filename=safe_filename,
         )
-        result = extractor.extract_all(save_json=True)
+        result = await anyio.to_thread.run_sync(extractor.extract_all, True)
+
+        # Store content hash index for future instant reuse
+        try:
+            cache_map = {}
+            if hash_index_path.exists():
+                with open(hash_index_path, "r", encoding="utf-8") as f:
+                    cache_map = json.load(f)
+            cache_map[file_digest] = document_id
+            with open(hash_index_path, "w", encoding="utf-8") as f:
+                json.dump(cache_map, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
 
         # Auto-index into Qdrant vector database (Stage 4)
         try:

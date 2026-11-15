@@ -98,6 +98,17 @@ def test_fastapi_upload_endpoint():
     # Test single page retrieval
     page_resp = client.get(f"/api/v1/documents/{doc_id}/pages/2")
     assert page_resp.status_code == 200
+    assert "جبن أبيض" in page_resp.json()["text"]
+
+    # Test duplicate upload cache hit
+    dup_response = client.post(
+        "/api/v1/documents/upload",
+        files={"file": ("كراسة_مناقصة_تجريبية.pdf", file_bytes, "application/pdf")},
+    )
+    assert dup_response.status_code == 201
+    dup_data = dup_response.json()
+    assert dup_data["summary"]["document_id"] == doc_id
+    assert dup_data["summary"]["total_pages"] == 4
     page_data = page_resp.json()
     assert page_data["page_number"] == 2
     assert "جبن أبيض" in page_data["text"]

@@ -1,4 +1,6 @@
+import concurrent.futures
 import json
+import os
 from pathlib import Path
 from typing import Optional
 import pymupdf
@@ -14,6 +16,7 @@ class PDFTextExtractor:
     """
     Extracts digital and OCR text page-by-page while preserving exact page numbers
     and document structure. Automatically routes image-only/scanned pages through OCR.
+    Supports parallel multi-core page processing for maximum throughput.
     """
 
     def __init__(
@@ -31,109 +34,115 @@ class PDFTextExtractor:
         if not self.pdf_path.exists():
             raise FileNotFoundError(f"PDF file does not exist: {self.pdf_path}")
 
-    def extract_all(self, save_json: bool = True) -> DocumentExtractionResult:
+    def _process_single_page(self, page_index: int) -> PageContent:
         """
-        Extracts all pages from the PDF document and compiles structured results.
-        Automatically runs OCR when scanned pages are detected.
+        Thread-safe single-page worker that processes raw text, scanned OCR,
+        and table extraction for a single page.
         """
         doc = pymupdf.open(self.pdf_path)
-        total_pages = len(doc)
-        pages: list[PageContent] = []
-        digital_pages_count = 0
-        scanned_pages_count = 0
-        ocr_pages_count = 0
-        total_tables_count = 0
+        page = doc.load_page(page_index)
+        page_number = page_index + 1  # 1-indexed
 
-        for page_index in range(total_pages):
-            page = doc.load_page(page_index)
-            page_number = page_index + 1  # 1-indexed
+        # Extract raw digital text
+        raw_text = page.get_text("text")
+        cleaned_text = clean_arabic_text(raw_text)
 
-            # Extract raw digital text
-            raw_text = page.get_text("text")
-            cleaned_text = clean_arabic_text(raw_text)
+        char_count = len(cleaned_text)
+        word_count = len(cleaned_text.split()) if cleaned_text else 0
 
-            char_count = len(cleaned_text)
-            word_count = len(cleaned_text.split()) if cleaned_text else 0
+        # Embedded images detection
+        image_list = page.get_images(full=True)
+        image_count = len(image_list)
 
-            # Embedded images detection
-            image_list = page.get_images(full=True)
-            image_count = len(image_list)
+        # Detect whether this page lacks text, is image-only, or has corrupted font encoding (Mojibake)
+        is_scanned = is_corrupted_or_scanned_page(raw_text, image_count)
 
-            # Detect whether this page lacks text, is image-only, or has corrupted font encoding (Mojibake)
-            is_scanned = is_corrupted_or_scanned_page(raw_text, image_count)
+        extraction_method = "digital"
+        ocr_confidence = None
 
-            extraction_method = "digital"
-            ocr_confidence = None
+        if is_scanned:
+            # Run OCR if available
+            if self.ocr_engine and self.ocr_engine.is_available():
+                ocr_raw_text, confidence = self.ocr_engine.extract_from_page(
+                    page, dpi=settings.OCR_DPI
+                )
+                cleaned_ocr = clean_arabic_text(ocr_raw_text)
 
-            if is_scanned:
-                scanned_pages_count += 1
-                # Run OCR if available
-                if self.ocr_engine and self.ocr_engine.is_available():
-                    ocr_raw_text, confidence = self.ocr_engine.extract_from_page(
-                        page, dpi=settings.OCR_DPI
-                    )
-                    cleaned_ocr = clean_arabic_text(ocr_raw_text)
-
-                    if cleaned_ocr:
-                        cleaned_text = cleaned_ocr
-                        char_count = len(cleaned_text)
-                        word_count = len(cleaned_text.split())
-                        extraction_method = "ocr"
-                        ocr_confidence = confidence
-                        ocr_pages_count += 1
-                    else:
-                        # Scanned image with no readable text detected
-                        cleaned_text = ""
-                        char_count = 0
-                        word_count = 0
-                        extraction_method = "ocr_empty"
+                if cleaned_ocr:
+                    cleaned_text = cleaned_ocr
+                    char_count = len(cleaned_text)
+                    word_count = len(cleaned_text.split())
+                    extraction_method = "ocr"
+                    ocr_confidence = confidence
                 else:
+                    # Scanned image with no readable text detected
                     cleaned_text = ""
                     char_count = 0
                     word_count = 0
-                    extraction_method = "pending_ocr"
+                    extraction_method = "ocr_empty"
             else:
-                digital_pages_count += 1
+                cleaned_text = ""
+                char_count = 0
+                word_count = 0
+                extraction_method = "pending_ocr"
 
-            # Extract structured tables on this page (Stage 3)
-            page_tables = TableExtractor.extract_tables_from_page(page, page_number)
-            total_tables_count += len(page_tables)
+        # Extract structured tables on this page (Stage 3)
+        page_tables = TableExtractor.extract_tables_from_page(page, page_number)
 
-            # Ensure table text and markdown are embedded into page text so text is complete
-            if page_tables:
-                table_md_blocks = [t.markdown for t in page_tables if t.markdown]
-                if table_md_blocks:
-                    tables_md_joined = "\n\n### جداول الصفحة المستخرجة:\n\n" + "\n\n".join(table_md_blocks)
-                    if cleaned_text:
-                        cleaned_text = cleaned_text + tables_md_joined
-                    else:
-                        cleaned_text = tables_md_joined
-                        if is_scanned and extraction_method in ("ocr_empty", "pending_ocr"):
-                            extraction_method = "ocr"
-                            ocr_pages_count += 1
+        # Ensure table text and markdown are embedded into page text so text is complete
+        if page_tables:
+            table_md_blocks = [t.markdown for t in page_tables if t.markdown]
+            if table_md_blocks:
+                tables_md_joined = "\n\n### جداول الصفحة المستخرجة:\n\n" + "\n\n".join(table_md_blocks)
+                if cleaned_text:
+                    cleaned_text = cleaned_text + tables_md_joined
+                else:
+                    cleaned_text = tables_md_joined
+                    if is_scanned and extraction_method in ("ocr_empty", "pending_ocr"):
+                        extraction_method = "ocr"
 
-                    char_count = len(cleaned_text)
-                    word_count = len(cleaned_text.split())
+                char_count = len(cleaned_text)
+                word_count = len(cleaned_text.split())
 
-            rect = page.rect
-            pages.append(
-                PageContent(
-                    page_number=page_number,
-                    char_count=char_count,
-                    word_count=word_count,
-                    has_text=char_count > 0,
-                    is_scanned_candidate=is_scanned,
-                    image_count=image_count,
-                    extraction_method=extraction_method,
-                    ocr_confidence=ocr_confidence,
-                    width=float(rect.width),
-                    height=float(rect.height),
-                    text=cleaned_text,
-                    tables=page_tables,
-                )
-            )
-
+        rect = page.rect
+        result_page = PageContent(
+            page_number=page_number,
+            char_count=char_count,
+            word_count=word_count,
+            has_text=char_count > 0,
+            is_scanned_candidate=is_scanned,
+            image_count=image_count,
+            extraction_method=extraction_method,
+            ocr_confidence=ocr_confidence,
+            width=float(rect.width),
+            height=float(rect.height),
+            text=cleaned_text,
+            tables=page_tables,
+        )
         doc.close()
+        return result_page
+
+    def extract_all(self, save_json: bool = True) -> DocumentExtractionResult:
+        """
+        Extracts all pages from the PDF document and compiles structured results.
+        Uses parallel multi-core thread execution for fast throughput.
+        """
+        doc = pymupdf.open(self.pdf_path)
+        total_pages = len(doc)
+        doc.close()
+
+        # Multi-core parallel processing
+        max_workers = min(4, os.cpu_count() or 1)
+        if total_pages <= 2 or max_workers <= 1:
+            pages = [self._process_single_page(i) for i in range(total_pages)]
+        else:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                pages = list(executor.map(self._process_single_page, range(total_pages)))
+
+        digital_pages_count = sum(1 for p in pages if not p.is_scanned_candidate)
+        scanned_pages_count = sum(1 for p in pages if p.is_scanned_candidate)
+        ocr_pages_count = sum(1 for p in pages if p.extraction_method == "ocr")
+        total_tables_count = sum(len(p.tables) for p in pages)
 
         file_size_bytes = self.pdf_path.stat().st_size
         summary = DocumentSummary(
