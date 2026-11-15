@@ -55,7 +55,7 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-lg font-bold text-white tracking-wide">Tender AI Lab</h1>
-            <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 font-semibold">المرحلة 4: التقطيع والمتجهات (Qdrant)</span>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 font-semibold">المرحلة 5: محرك RAG والأسئلة الذكية</span>
           </div>
           <p class="text-xs text-slate-400">معمل معالجة كراسات الشروط والمناقصات - Kayan Catering ERP</p>
         </div>
@@ -214,6 +214,75 @@
         </div>
       </div>
 
+      <!-- AI Copilot & RAG QA Card (Stage 5) -->
+      <div class="bg-gradient-to-br from-slate-900/95 to-slate-950 border border-emerald-500/30 rounded-2xl p-5 space-y-4 shadow-xl shadow-emerald-950/20">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white">المساعد الذكي لكراسة الشروط (AI Copilot RAG)</h3>
+              <p class="text-xs text-slate-400">اطرح أي سؤال ليقوم الذكاء الاصطناعي بتوليد إجابة موثقة بأرقام الصفحات والجداول</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Question Suggestions -->
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <span class="text-slate-500 text-[11px]">أسئلة سريعة:</span>
+          <button type="button" class="rag-quick-btn px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60 transition" data-q="ما هي كمية الجبن المقررة في وجبة الإفطار؟">🧀 كمية الجبن في الإفطار؟</button>
+          <button type="button" class="rag-quick-btn px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60 transition" data-q="ما هي كمية اللحوم والدواجن في وجبة الغداء؟">🥩 مقننات اللحوم والدواجن؟</button>
+          <button type="button" class="rag-quick-btn px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60 transition" data-q="ما هي غرامات التأخير والجزاءات في كراسة الشروط؟">⚠️ غرامات التأخير والجزاءات؟</button>
+          <button type="button" class="rag-quick-btn px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60 transition" data-q="ما هي قيمة التأمين الابتدائي وآخر موعد لتقديم العطاءات؟">🎯 التأمين الابتدائي والمواعيد؟</button>
+        </div>
+
+        <form id="ragQAForm" class="flex gap-2">
+          <input
+            type="text"
+            id="ragQAInput"
+            placeholder="اسأل المساعد الذكي أي سؤال عن الأصناف أو المقننات أو الشروط..."
+            class="flex-1 bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition"
+            required
+          />
+          <button
+            type="submit"
+            id="ragQABtn"
+            class="bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition shadow-md flex items-center gap-1.5 flex-shrink-0"
+          >
+            <span>إرسال السؤال</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            </svg>
+          </button>
+        </form>
+
+        <!-- RAG Answer Box -->
+        <div id="ragAnswerContainer" class="hidden space-y-4 pt-4 border-t border-slate-800">
+          <div class="bg-slate-950 rounded-xl border border-emerald-500/30 p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                <span>🌸</span>
+                <span>الإجابة المولدة من كراسة الشروط:</span>
+              </span>
+              <button type="button" id="copyRAGAnswerBtn" class="text-xs text-slate-400 hover:text-slate-200">نسخ الإجابة 📋</button>
+            </div>
+            <div id="ragAnswerText" class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap font-sans">
+            </div>
+
+            <!-- Citations -->
+            <div id="ragCitationsSection" class="pt-3 border-t border-slate-800/80 space-y-2">
+              <span class="text-xs font-semibold text-slate-400 block">المصادر الموثقة من الصفحات والجداول:</span>
+              <div id="ragCitationsList" class="flex flex-wrap gap-2">
+                <!-- Clickable Citation Badges -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Explorer View -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
@@ -246,7 +315,7 @@
           <!-- Extracted Text Area -->
           <div class="relative">
             <div class="flex items-center justify-between mb-2">
-              <label class="text-xs font-semibold text-slate-400">النص المستخرج من الطبقة الرقمية للصفحة:</label>
+              <label id="pageTextLabel" class="text-xs font-semibold text-slate-400">النص المستخرج من الطبقة الرقمية للصفحة:</label>
               <button id="copyTextBtn" class="text-xs text-brand-400 hover:text-brand-300 font-medium flex items-center gap-1 transition">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
@@ -494,16 +563,20 @@
       activePageChars.textContent = page.char_count;
       activePageImages.textContent = page.image_count;
 
+      const pageTextLabel = document.getElementById('pageTextLabel');
       if (page.extraction_method === 'ocr') {
         const confPercent = page.ocr_confidence ? Math.round(page.ocr_confidence * 100) : 0;
         activePageTypeBadge.textContent = `مستخرج بالتعرف الضوئي (OCR) • دقة القراءة: ${confPercent}%`;
         activePageTypeBadge.className = 'text-xs px-2.5 py-0.5 rounded-full font-semibold bg-blue-950 border border-blue-800/50 text-blue-300';
+        if (pageTextLabel) pageTextLabel.textContent = 'النص المستخرج بالتعرف الضوئي (OCR) وجداول الصفحة:';
       } else if (page.is_scanned_candidate) {
         activePageTypeBadge.textContent = 'صفحة مصورة';
         activePageTypeBadge.className = 'text-xs px-2.5 py-0.5 rounded-full font-semibold bg-amber-950 border border-amber-800/50 text-amber-300';
+        if (pageTextLabel) pageTextLabel.textContent = 'نص الصفحة المستخرج:';
       } else {
         activePageTypeBadge.textContent = 'نص رقمي مباشر';
         activePageTypeBadge.className = 'text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-950 border border-emerald-800/50 text-emerald-300';
+        if (pageTextLabel) pageTextLabel.textContent = 'النص المستخرج من الطبقة الرقمية للصفحة:';
       }
 
       if (page.text && page.text.trim()) {
@@ -690,6 +763,105 @@
           semanticSearchBtn.innerHTML = origBtnHtml;
         }
       });
+
+      // RAG QA Handlers (Stage 5)
+      const ragQAForm = document.getElementById('ragQAForm');
+      const ragQAInput = document.getElementById('ragQAInput');
+      const ragQABtn = document.getElementById('ragQABtn');
+      const ragAnswerContainer = document.getElementById('ragAnswerContainer');
+      const ragAnswerText = document.getElementById('ragAnswerText');
+      const ragCitationsList = document.getElementById('ragCitationsList');
+      const copyRAGAnswerBtn = document.getElementById('copyRAGAnswerBtn');
+      const quickBtns = document.querySelectorAll('.rag-quick-btn');
+
+      quickBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (ragQAInput) {
+            ragQAInput.value = btn.dataset.q;
+            ragQAForm.dispatchEvent(new Event('submit'));
+          }
+        });
+      });
+
+      if (copyRAGAnswerBtn) {
+        copyRAGAnswerBtn.addEventListener('click', () => {
+          if (ragAnswerText && ragAnswerText.textContent) {
+            navigator.clipboard.writeText(ragAnswerText.textContent.trim()).then(() => {
+              const orig = copyRAGAnswerBtn.textContent;
+              copyRAGAnswerBtn.textContent = 'تم النسخ! ✓';
+              setTimeout(() => copyRAGAnswerBtn.textContent = orig, 2000);
+            });
+          }
+        });
+      }
+
+      if (ragQAForm) {
+        ragQAForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const question = ragQAInput ? ragQAInput.value.trim() : '';
+          if (!question) return;
+
+          if (!currentDocument || !currentDocument.summary) {
+            showError('يرجى رفع أو اختيار كراسة شروط أولاً للبدء في السؤال.');
+            return;
+          }
+
+          hideError();
+          const origBtnHtml = ragQABtn.innerHTML;
+          ragQABtn.disabled = true;
+          ragQABtn.innerHTML = `<span class="inline-block animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full mr-1"></span><span>جاري التفكير والتوليد...</span>`;
+
+          try {
+            const res = await fetch('/api/v1/rag/ask', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                question: question,
+                document_id: currentDocument.summary.document_id,
+                top_k: 5
+              })
+            });
+
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              throw new Error(err.detail || 'فشل توليد الإجابة من كراسة الشروط');
+            }
+
+            const data = await res.json();
+            ragAnswerText.textContent = data.answer;
+
+            // Render citations
+            ragCitationsList.innerHTML = '';
+            if (data.citations && data.citations.length > 0) {
+              data.citations.forEach((c) => {
+                const badge = document.createElement('button');
+                badge.type = 'button';
+                const isTable = c.chunk_type === 'table';
+                const icon = isTable ? '📊' : '📄';
+                const label = isTable ? `جدول صفحة ${c.page_number}` : `صفحة ${c.page_number}`;
+                badge.className = 'text-xs px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/60 text-emerald-300 font-medium flex items-center gap-1 transition';
+                badge.innerHTML = `<span>${icon} ${label}</span>`;
+                badge.title = c.snippet || '';
+                badge.addEventListener('click', () => {
+                  selectPage(c.page_number - 1);
+                });
+                ragCitationsList.appendChild(badge);
+              });
+            } else {
+              ragCitationsList.innerHTML = `<span class="text-xs text-slate-500">لا توجد مصادر مرجعية مباشرة.</span>`;
+            }
+
+            ragAnswerContainer.classList.remove('hidden');
+            ragAnswerContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+          } catch (err) {
+            showError(err.message || 'حدث خطأ أثناء معالجة السؤال الذكي.');
+          } finally {
+            ragQABtn.disabled = false;
+            ragQABtn.innerHTML = origBtnHtml;
+          }
+        });
+      }
     }
 
     function showError(msg) {

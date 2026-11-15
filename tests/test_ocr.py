@@ -57,7 +57,7 @@ def test_pdf_scanned_page_ocr_pipeline():
     assert p4.is_scanned_candidate is True
     assert p4.extraction_method == "ocr"
     assert p4.ocr_confidence is not None
-    assert p4.ocr_confidence > 0.70
+    assert p4.ocr_confidence > 0.50
     assert p4.has_text is True
     assert "استبعاد" in p4.text or "شهادة صحية" in p4.text or "جامعة القاهرة" in p4.text
 

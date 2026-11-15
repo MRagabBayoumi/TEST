@@ -99,6 +99,22 @@ class PDFTextExtractor:
             page_tables = TableExtractor.extract_tables_from_page(page, page_number)
             total_tables_count += len(page_tables)
 
+            # Ensure table text and markdown are embedded into page text so text is complete
+            if page_tables:
+                table_md_blocks = [t.markdown for t in page_tables if t.markdown]
+                if table_md_blocks:
+                    tables_md_joined = "\n\n### جداول الصفحة المستخرجة:\n\n" + "\n\n".join(table_md_blocks)
+                    if cleaned_text:
+                        cleaned_text = cleaned_text + tables_md_joined
+                    else:
+                        cleaned_text = tables_md_joined
+                        if is_scanned and extraction_method in ("ocr_empty", "pending_ocr"):
+                            extraction_method = "ocr"
+                            ocr_pages_count += 1
+
+                    char_count = len(cleaned_text)
+                    word_count = len(cleaned_text.split())
+
             rect = page.rect
             pages.append(
                 PageContent(
